@@ -1,63 +1,60 @@
 import requests
 from bs4 import BeautifulSoup
+import requests
 import datetime
 import pytz
 
-# pip install pyTelegramBotAPI
-# pip install decouple
-# pip install requests
-# pip install beautifulsoup4
-# pip install pytz
 
 def getPrices():
     dataReaquired = [
-        {"title": "5gm", "url": "https://shop.btcegyptgold.com/24k-gold-islamic-ingot-al-kursi-verse-5g.html",
-            "class": "price", "index": 1},
-        {"title": "10gm", "url": "https://shop.btcegyptgold.com/24k-pharaonic-king-tut-yellow-gold-ingot-10.html",
-            "class": "price", "index": 1},
-        {"title": "20gm", "url": "https://shop.btcegyptgold.com/24k-btc-yellow-gold-ingot-20-g.html",
-            "class": "price", "index": 1},
-        {"title": "31.1gm", "url": "https://shop.btcegyptgold.com/24k-i-love-you-gold-ingot-31-1g.html",
-            "class": "price", "index": 1},
-        {"title": "50gm", "url": "https://shop.btcegyptgold.com/24k-pharaonic-queen-nefertari-yellow-gold-ingot-50-g.html",
-            "class": "price", "index": 1},
+        {"title": "10gm", "url": "https://egypt.gold-era.com/ar/product/%d8%b3%d8%a8%d9%8a%d9%83%d8%a9-%d8%b0%d9%87%d8%a8-10-%d8%ac%d8%b1%d8%a7%d9%85/",
+            "class": "woocommerce-Price-amount amount", "index": 3},
         {"title": "Dollar Now", "url": "https://www.google.com/finance/quote/USD-EGP?hl=en",
          "class": "YMlKec fxKbKc", "index": 0},
     ]
-    dataToShow = []
+
+    PricesList = []
     for i in dataReaquired:
+        # web scrapping
         page = requests.get(i.get("url"))
         soup = BeautifulSoup(page.content, 'html.parser')
-        price = soup.find_all(class_=i.get("class"))[i.get("index")].text
-        # print(price)
-        dataToShow.append({i.get("title"): price})
-    return dataToShow
+        price = soup.find_all(class_=i.get("class"))[i.get("index")].text[0:6:1].replace(",",".")
+        print(price)
+        # appending data to array
+        PricesList.append({i.get("title"): price})
+    print("Prices Scrapping Done ...")
+    return PricesList
 
 
-def reply():
+def AssignDataToFirebase():
     prices = getPrices()
     url = 'https://finance-456dd-default-rtdb.firebaseio.com/Data.json'
-    x = requests.get(url)
-    y = x.json()
-    time2 = str(datetime.datetime.now(pytz.timezone('Africa/Cairo')).strftime("%Y-%m-%d %I:%M %p"))
+    firebaseList = requests.get(url)
+    firebaseListJson = firebaseList.json()
+    date = str(datetime.datetime.now(pytz.timezone(
+        'Africa/Cairo')).strftime("%Y-%m-%d %I:%M %p"))
+    gmPrice = float((str(prices[0]['10gm'])).replace(
+        ",", ".").replace(" EGP", ""))/10
     firebaseObj = {
-        "Date": time2,
-        'G5gm': prices[0]['5gm'].replace(",", ".").replace(" EGP", ""),
-        'G10gm': prices[1]['10gm'].replace(",", ".").replace(" EGP", ""),
-        'G20gm': prices[2]['20gm'].replace(",", ".").replace(" EGP", ""),
-        'G31gm': prices[3]['31.1gm'].replace(",", ".").replace(" EGP", ""),
-        'G50gm': prices[4]['50gm'].replace(",", ".").replace(" EGP", ""),
-        'Dollar': prices[5]['Dollar Now'].replace(",", ".").replace(" EGP", "")
-    }
-    y.append(firebaseObj)
-
-    requests.put(url=url, json=y)
-    newPrices = ""
+        "Date": date,
+        'G5gm': str(gmPrice * 5).replace(",", ".").replace(" EGP", ""),
+        'G10gm': str(gmPrice * 10).replace(",", ".").replace(" EGP", ""),
+        'G20gm': str(gmPrice * 20).replace(",", ".").replace(" EGP", ""),
+        'G31gm': str(gmPrice * 31.1).replace(",", ".").replace(" EGP", ""),
+        'G50gm': str(gmPrice * 50).replace(",", ".").replace(" EGP", ""),
+        'Dollar': prices[1]['Dollar Now'].replace(",", ".").replace(" EGP", "")
+    }    
+    # appending data to array
+    firebaseListJson.append(firebaseObj)
+    # append data to firebase
+    requests.put(url=url, json=firebaseListJson)
+    # handelling data preview
+    handeledPrices = ""
     for i in prices:
-        newPrices = newPrices + "\n" + str(i)
-    newPrices = newPrices.replace("[", "").replace(
+        handeledPrices = handeledPrices + "\n" + str(i)
+    handeledPrices = handeledPrices.replace("[", "").replace(
         "]", "").replace("{", "").replace("}", "").replace("'", "")
-    
-    return newPrices
+    # print(handeledPrices)
+    return firebaseObj
 
-reply()
+AssignDataToFirebase()
