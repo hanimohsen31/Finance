@@ -74,11 +74,11 @@ print("Gathering Data ....")
 print("Please Wait....")
 AssignDataToFirebase()
 
-# while True:
-#     x = input("Enter any or q .... ")
-#     if x == "q" or x == "Q" or x == 'esc':
-#         print("Quit ...")
-#         break
-#     else:
-#         print("wait ...")
-#         AssignDataToFirebase()
+while True:
+    x = input("Enter any or q .... ")
+    if x == "q" or x == "Q" or x == 'esc':
+        print("Quit ...")
+        break
+    else:
+        print("wait ...")
+        AssignDataToFirebase()
